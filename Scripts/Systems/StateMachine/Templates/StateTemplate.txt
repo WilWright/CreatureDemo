@@ -1,0 +1,27 @@
+using UnityEngine;
+
+using static [[Controller]];
+using static [[StateMachine]];
+
+public class [[ClassType]] : [[ParentState]]
+{
+    public override void InitState()
+    {
+
+    }
+
+    public override void Begin(int previousState)
+    {
+        
+    }
+
+    public override void End(int nextState)
+    {
+
+    }
+
+    public override void Process()
+    {
+
+    }
+}

@@ -1,0 +1,42 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using static [[StateMachine]];
+
+public class [[ClassType]] : MonoBehaviour
+{
+    [Header("General")]
+#if UNITY_EDITOR
+    [MethodButton(nameof(InitStateMachine))]
+    [SerializeField, Space(10)] MethodButton m_0;
+#endif
+    [field: SerializeField] public [[StateMachine]] StateMachine { get; private set; }
+
+    void Start()
+    {
+        StateMachine.Init();
+    }
+
+    void Update()
+    { 
+        StateMachine.Process();
+    }
+
+#if UNITY_EDITOR
+    void InitStateMachine()
+    {
+        if (StateMachine != null)
+        {
+            SystemLog.Info("[[StateMachine]] already initialized");
+            return;
+        }
+
+        StateMachine = gameObject.AddComponent<[[StateMachine]]>();
+        SystemLog.Info("Created [[StateMachine]]");
+
+        StateMachine.SetController(this);
+        StateMachine.UpdateStates();
+    }
+#endif
+}

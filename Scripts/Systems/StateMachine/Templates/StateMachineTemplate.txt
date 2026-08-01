@@ -1,0 +1,143 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using StateMachine;
+
+public class [[ClassType]] : MonoBehaviour
+{
+    public enum [[StateType]]
+    { 
+        [[State]]
+    }
+    
+    [SerializeField] bool _debug;
+
+#if UNITY_EDITOR
+    [MethodButton(nameof(UpdateStates))]
+    [SerializeField, Space(10)] MethodButton m_0;
+#endif
+    [SerializeField] [[ParentState]][] _states;
+
+    [SerializeField] [[Controller]] _controller;
+
+    StateMachine<[[StateType]]> _stateMachine;
+    public readonly int STATE_LENGTH = System.Enum.GetValues(typeof([[StateType]])).Length;
+
+    public void Init()
+    {
+        _stateMachine = new StateMachine<[[StateType]]>();
+        for (int i = 0; i < STATE_LENGTH; i++)
+        {
+            var state = _states[i];
+            if (state == null)
+            {
+                continue;
+            }
+
+            _stateMachine.InitState(([[StateType]])i, state);
+            state.Init(_controller, this);
+        }
+
+        _stateMachine.ChangeState([[InitialState]]);
+    }
+
+    public bool IsCurrentState([[StateType]] [[StateTypeParameter]])
+    {
+        return _stateMachine.IsCurrentState([[StateTypeParameter]]);
+    }
+    public void ChangeState([[StateType]] [[StateTypeParameter]])
+    {
+        _stateMachine.ChangeState([[StateTypeParameter]]);
+    }
+    public [[ParentState]] GetState([[StateType]] [[StateTypeParameter]])
+    {
+        return _states[(int)[[StateTypeParameter]]];
+    }
+
+    public void Process() 
+    {
+    #if UNITY_EDITOR
+        _stateMachine.IsDebugEnabled = _debug;
+    #endif
+
+        _stateMachine.Process();
+    }
+
+#if UNITY_EDITOR
+    public void UpdateStates()
+    {
+        var stateHolder = GetStateHolder();
+        var children = stateHolder.GetComponentsInChildren<Transform>();
+
+        _states = new [[ParentState]][STATE_LENGTH];
+        for (int i = 0; i < STATE_LENGTH; i++)
+        {
+            var s = ([[StateType]])i;
+            string stateName = s.ToString();
+
+            Transform stateTransform = null;
+            if (children != null)
+            {
+                foreach (var child in children)
+                {
+                    if (child.parent == stateHolder && child.name == stateName)
+                    {
+                        stateTransform = child;
+                        break;
+                    }
+                }
+            }
+            if (stateTransform == null)
+            {
+                stateTransform = new GameObject(stateName).transform;
+                stateTransform.SetParent(stateHolder);
+                stateTransform.localPosition = Vector3.zero;
+            }
+
+            [[ParentState]] stateComponent;
+            var stateType = System.Type.GetType($"{typeof([[StateType]]).Name}_{stateName}");
+            if (stateTransform.TryGetComponent(stateType, out Component c))
+            {
+                stateComponent = ([[ParentState]])c;
+                SystemLog.Info($"Found {s}");
+            }
+            else
+            {
+                stateComponent = ([[ParentState]])stateTransform.gameObject.AddComponent(stateType);
+                SystemLog.Info($"Created {s}");
+            }
+
+            _states[i] = stateComponent;
+        }
+    }
+
+    Transform GetStateHolder()
+    {
+        var children = gameObject.GetComponentsInChildren<Transform>();
+        if (children != null)
+        {
+            foreach (var child in children)
+            {
+                if (child.parent == transform && child.name == "States")
+                {
+                    SystemLog.Info($"Found {transform.name} -> {child.name}");
+                    return child;
+                }
+            }
+        }
+
+        var stateHolder = new GameObject("States").transform;
+        stateHolder.SetParent(transform);
+        stateHolder.localPosition = Vector3.zero;
+        SystemLog.Info($"Created {transform.name} -> {stateHolder.name}");
+
+        return stateHolder;
+    }
+
+    public void SetController([[Controller]] controller)
+    {
+        _controller = controller;
+    }
+#endif
+}

@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 766db327047cc2f44a0fd500cdbe7a6d, type: 3}
+  m_Name: State Machine Manager Templates Default
+  m_EditorClassIdentifier: 
+  <StateMachine>k__BackingField: {fileID: 4900000, guid: 6080367f52f09da438bea06485eb9e87, type: 3}
+  <Controller>k__BackingField: {fileID: 4900000, guid: 03435f04b75d8f048a5e58731bd2cb15, type: 3}
+  <ParentState>k__BackingField: {fileID: 4900000, guid: 2edfbb5dac2cbab4f8c0925195168762, type: 3}
+  <State>k__BackingField: {fileID: 4900000, guid: 4a60b54b959bfd445888b8598c69cc7e, type: 3}

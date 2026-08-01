@@ -1,0 +1,15 @@
+using StateMachine;
+
+public class [[ClassType]] : State
+{
+    protected [[Controller]] _controller = null;
+    protected [[StateMachine]] _parentStateMachine = null;
+
+    public void Init([[Controller]] controller, [[StateMachine]] parentStateMachine)
+    {
+        _controller = controller;
+        _parentStateMachine = parentStateMachine;
+        InitState();
+    }
+    public virtual void InitState() { }
+}
