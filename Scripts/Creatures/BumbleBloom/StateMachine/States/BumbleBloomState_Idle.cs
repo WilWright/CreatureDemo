@@ -1,1 +1,27 @@
-using UnityEngine;using static BumbleBloomController;using static BumbleBloomStateMachine;public class BumbleBloomState_Idle : State_BumbleBloom{    public override void InitState()    {    }    public override void Begin(int previousState)    {        _controller.NavigationUnit.Stop();    }    public override void End(int nextState)    {    }    public override void Process()    {    }}
+using UnityEngine;
+
+using static BumbleBloomController;
+using static BumbleBloomStateMachine;
+
+public class BumbleBloomState_Idle : State_BumbleBloom
+{
+    public override void InitState()
+    {
+
+    }
+
+    public override void Begin(int previousState)
+    {
+        _controller.NavigationUnit.Stop();
+    }
+
+    public override void End(int nextState)
+    {
+
+    }
+
+    public override void Process()
+    {
+
+    }
+}

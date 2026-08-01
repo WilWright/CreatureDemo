@@ -1,14 +1,55 @@
-using System.Collections;using System.Collections.Generic;using UnityEngine;using Navigation;using Utils;using static BumbleBloomStateMachine;public class BumbleBloomController : MonoBehaviour{    [Header("General")]#if UNITY_EDITOR    [MethodButton(nameof(InitStateMachine))]    [SerializeField, Space(10)] MethodButton m_0;#endif    [field: SerializeField] public BumbleBloomStateMachine StateMachine { get; private set; }    [field: SerializeField] public NavigationUnit NavigationUnit { get; private set; }    [SerializeField] MinMaxValue.Float _goToFieldDelay;    [SerializeField] MinMaxValue.Float _goToBushDelay;    BushNavigationData _currentBush;    const float OUT_OF_BUSH_RANGE_SQR = 0.25f; // 0.5²
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
-    const int GO_TO_FIELD_HOUR = 7;    const int GO_TO_BUSH_HOUR  = 19;    void Start()    {        DayNightCycle.OnHourStart.AddListener(CheckDailyRoutine);        StateMachine.Init();    }    void Update()    {
-        StateMachine.Process();        if (StateMachine.IsCurrentState(BumbleBloomState.Walk))
+using Navigation;
+using Utils;
+
+using static BumbleBloomStateMachine;
+
+public class BumbleBloomController : MonoBehaviour
+{
+    [Header("General")]
+#if UNITY_EDITOR
+    [MethodButton(nameof(InitStateMachine))]
+    [SerializeField, Space(10)] MethodButton m_0;
+#endif
+    [field: SerializeField] public BumbleBloomStateMachine StateMachine { get; private set; }
+
+    [field: SerializeField] public NavigationUnit NavigationUnit { get; private set; }
+
+    [SerializeField] MinMaxValue.Float _goToFieldDelay;
+    [SerializeField] MinMaxValue.Float _goToBushDelay;
+
+    BushNavigationData _currentBush;
+
+    const float OUT_OF_BUSH_RANGE_SQR = 0.25f; // 0.5²
+
+    const int GO_TO_FIELD_HOUR = 7;
+    const int GO_TO_BUSH_HOUR  = 19;
+
+    void Start()
+    {
+        DayNightCycle.OnHourStart.AddListener(CheckDailyRoutine);
+
+        StateMachine.Init();
+    }
+
+    void Update()
+    {
+        StateMachine.Process();
+
+        if (StateMachine.IsCurrentState(BumbleBloomState.Walk))
         {
             var walkState = (BumbleBloomState_Walk)StateMachine.GetState(BumbleBloomState.Walk);
             if (walkState.IsGoingToBush == false)
             {
                 CheckCurrentBush();
             }
-        }    }    void CheckDailyRoutine(int hour)
+        }
+    }
+
+    void CheckDailyRoutine(int hour)
     {
         NavigationData[] navigationDatas;
 
@@ -62,7 +103,9 @@ using System.Collections;using System.Collections.Generic;using UnityEngine;
                 }
                 break;
         }
-    }    void CheckCurrentBush()
+    }
+
+    void CheckCurrentBush()
     {
         if (_currentBush == null)
         {
@@ -77,4 +120,22 @@ using System.Collections;using System.Collections.Generic;using UnityEngine;
 
         _currentBush.ReleaseCapacity(NavigationUnit.UnitConfig);
         _currentBush = null;
-    }#if UNITY_EDITOR    void InitStateMachine()    {        if (StateMachine != null)        {            SystemLog.Info("BumbleBloomStateMachine already initialized");            return;        }        StateMachine = gameObject.AddComponent<BumbleBloomStateMachine>();        SystemLog.Info("Created BumbleBloomStateMachine");        StateMachine.SetController(this);        StateMachine.UpdateStates();    }#endif}
+    }
+
+#if UNITY_EDITOR
+    void InitStateMachine()
+    {
+        if (StateMachine != null)
+        {
+            SystemLog.Info("BumbleBloomStateMachine already initialized");
+            return;
+        }
+
+        StateMachine = gameObject.AddComponent<BumbleBloomStateMachine>();
+        SystemLog.Info("Created BumbleBloomStateMachine");
+
+        StateMachine.SetController(this);
+        StateMachine.UpdateStates();
+    }
+#endif
+}
