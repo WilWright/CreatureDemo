@@ -12,6 +12,7 @@ namespace Navigation
     {
         [SerializeField] bool _debug;
 
+        [field: SerializeField] public Unit Unit { get; private set; }
         [field: SerializeField] public NavigationUnitConfig UnitConfig { get; private set; }
 
         public UnitType UnitType => UnitConfig.UnitType;
@@ -21,6 +22,7 @@ namespace Navigation
         public bool IsNavigating { get; private set; }
 
         public UnityEvent OnDestinationReached = new();
+        public UnityEvent OnCancelled = new();
 
         NavigationPath _currentPath;
         float _currentDistanceNavigated;
@@ -87,11 +89,16 @@ namespace Navigation
         {
             Stop();
 
-            _currentRequestCancellation = RequestNavigationPath(worldPosition,
+            _currentRequestCancellation = Unit.RequestNavigationPath(worldPosition,
                 (path) =>
                 {
                     _currentRequestCancellation = null;
                     SetPath(path);
+
+                    if (path == null)
+                    {
+                        OnCancelled.Invoke();
+                    }
                 }
             );
         }
@@ -104,6 +111,8 @@ namespace Navigation
             {
                 _currentRequestCancellation.Cancel();
                 _currentRequestCancellation = null;
+
+                OnCancelled.Invoke();
             }
 
             _currentPath = null;
@@ -128,11 +137,16 @@ namespace Navigation
                 yield break;
             }
 
-            _currentRequestCancellation = RequestNavigationPath(worldPosition,
+            _currentRequestCancellation = Unit.RequestNavigationPath(worldPosition,
                 (path) =>
                 {
                     _currentRequestCancellation = null;
                     SetPath(path);
+
+                    if (path == null)
+                    {
+                        Stop();
+                    }
                 }
             );
 
@@ -147,16 +161,6 @@ namespace Navigation
             }
 
             Wander();
-        }
-
-        CancellationTokenSource RequestNavigationPath(Vector3 to, Action<NavigationPath> onReady)
-        {
-            if (GameController.ChunkManager.TryGetChunk(transform.position, out var chunk) == false)
-            {
-                onReady(null);
-                return null;
-            }
-            return chunk.RequestNavigationPath(this, to, onReady);
         }
 
         void SetPath(NavigationPath path)

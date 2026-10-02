@@ -1,4 +1,5 @@
 using System.Text;
+using UnityEngine;
 
 namespace Utils
 {
@@ -40,6 +41,15 @@ namespace Utils
             }
 
             return builder.ToString();
+        }
+
+        public static string Color(this string s, Color color)
+        {
+            return s.Color(ColorUtility.ToHtmlStringRGBA(color));
+        }
+        public static string Color(this string s, string hexCode)
+        {
+            return $"<b><color=#{hexCode}>{s}</color></b>";
         }
     }
 }

@@ -10,9 +10,9 @@ namespace Debugging
 {
     public class DebugLine : MonoBehaviour
     {
-        public Transform End { get; private set; }
+        [field: SerializeField] public Transform End { get; private set; }
 
-        Color _color;
+        [SerializeField] Color _color;
 
         public static DebugLine Create(string name, Vector3 start, Vector3 end, Color? color = null)
         {

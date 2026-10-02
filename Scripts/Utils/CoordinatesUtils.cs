@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 namespace Utils
@@ -25,6 +26,12 @@ namespace Utils
             Mathf.CeilToInt(vector3.z)
         );
 
+        public static Coordinates3D GetNormalized(this Coordinates3D c) => new(
+            Math.Sign(c.x),
+            Math.Sign(c.y),
+            Math.Sign(c.z)
+        );
+
         public static Coordinates3D Min(Coordinates3D a, Coordinates3D b) => new(
             Mathf.Min(a.x, b.x),
             Mathf.Min(a.y, b.y),
@@ -39,10 +46,28 @@ namespace Utils
 
         public static FromZeroEnumerator EnumerateFromZero(this Coordinates3D c) => new(c);
 
+        public static AdjacentEnumerator EnumerateAdjacent(this Coordinates3D c) => new(c);
+
         public static RadiusAsCubeVolumeEnumerator   EnumerateRadiusAsCubeVolume  (this Coordinates3D c, int radius) => new(c, radius);
         public static RadiusAsCubeShellEnumerator    EnumerateRadiusAsCubeShell   (this Coordinates3D c, int radius) => new(c, radius);
         public static RadiusAsSphereVolumeEnumerator EnumerateRadiusAsSphereVolume(this Coordinates3D c, int radius) => new(c, radius);
         public static RadiusAsSphereShellEnumerator  EnumerateRadiusAsSphereShell (this Coordinates3D c, int radius) => new(c, radius);
+
+        public static void Write(this BinaryWriter writer, Coordinates3D c)
+        {
+            writer.Write(c.x);
+            writer.Write(c.y);
+            writer.Write(c.z);
+        }
+
+        public static Coordinates3D ReadCoordinates3D(this BinaryReader reader)
+        {
+            return new Coordinates3D(
+                reader.ReadInt32(),
+                reader.ReadInt32(),
+                reader.ReadInt32()
+            );
+        }
 
         #region Enumerators
 
@@ -83,6 +108,36 @@ namespace Utils
             }
 
             public readonly FromZeroEnumerator GetEnumerator() => this;
+        }
+
+        public struct AdjacentEnumerator
+        {
+            public Coordinates3D Current { get; private set; }
+
+            int _index;
+
+            readonly Coordinates3D _origin;
+
+            public AdjacentEnumerator(Coordinates3D c)
+            {
+                Current = _origin = c;
+
+                _index = -1;
+            }
+
+            public bool MoveNext()
+            {
+                switch (++_index)
+                {
+                    case 0: Current = _origin + Coordinates3D.LEFT;    return true;
+                    case 1: Current = _origin + Coordinates3D.RIGHT;   return true;
+                    case 2: Current = _origin + Coordinates3D.FORWARD; return true;
+                    case 3: Current = _origin + Coordinates3D.BACK;    return true;
+                    case 4: Current = _origin + Coordinates3D.UP;      return true;
+                    case 5: Current = _origin + Coordinates3D.DOWN;    return true;
+                    default: return false;
+                }
+            }
         }
 
         public struct RadiusAsCubeVolumeEnumerator

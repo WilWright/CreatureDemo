@@ -91,8 +91,14 @@ namespace Navigation
                     return;
                 }
             }
+            
+            var saveResult = await scan.Save(scanPath);
+            if (saveResult.IsSuccess == false)
+            {
+                SystemLog.PopUp("Terrain Scanner", $"Error: {saveResult.FailMessage}");
+                return;
+            }
 
-            await scan.Save(scanPath);
             AssetDatabase.Refresh();
 
             SystemLog.PopUp("Terrain Scanner", $"Saved: {scanPath}");
@@ -130,7 +136,7 @@ namespace Navigation
 
             if (scan == null)
             {
-                SystemLog.Error("Use Bake Navigation Scan first");
+                SystemLog.Error("Check errors or use Bake Navigation Scan first");
                 return;
             }
 
@@ -242,6 +248,7 @@ namespace Navigation
             catch (Exception ex)
             {
                 SystemLog.PopUp("Terrain Scanner", $"Error: {ex.Message}");
+                SystemLog.Error(ex.Message, ex);
                 throw ex;
             }
 
@@ -258,7 +265,13 @@ namespace Navigation
                 }
             }
 
-            await graph.Save(graphPath);
+            var saveResult = await graph.Save(graphPath);
+            if (saveResult.IsSuccess == false)
+            {
+                SystemLog.PopUp("Terrain Scanner", $"Error: {saveResult.FailMessage}");
+                return;
+            }
+
             AssetDatabase.Refresh();
 
             SystemLog.PopUp("Terrain Scanner", $"Saved: {graphPath}");
@@ -296,7 +309,7 @@ namespace Navigation
 
             if (graph == null)
             {
-                SystemLog.Error("Use Bake Navigation Graph first");
+                SystemLog.Error("Check errors or use Bake Navigation Graph first");
                 return;
             }
 
@@ -480,6 +493,7 @@ namespace Navigation
                         var nodeWorldPos = origin + c.ToVector3() * _scanNodeSize;
 
                         // Check if corners raycasted towards surface hit something to detect if on a ledge or not
+                        // TODO: Fix case where higher terrain is overlapping
                         var cornerCenter = hit.point + Vector3.up * halfNodeSize;
                         cornerCenter = hit.point + hit.normal * Vector3.Distance(cornerCenter, hit.point);
                         var cornerLeft = Vector3.Cross(Vector3.forward, hit.normal).normalized;

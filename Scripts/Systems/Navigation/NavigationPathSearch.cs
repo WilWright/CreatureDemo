@@ -36,6 +36,8 @@ namespace Navigation
             }
         }
 
+        public bool Initialized { get; private set; }
+
         Graph<Coordinates3D, NavigationNode> _searchGraph;
 
         readonly BlockingCollection<SearchRequest> _searchRequests = new();
@@ -74,6 +76,8 @@ namespace Navigation
 
                 _searchThread = new Thread(ProcessSearchThread);
                 _searchThread.Start();
+
+                Initialized = true;
             });
 
             _initThread.Start();
@@ -147,6 +151,8 @@ namespace Navigation
 
         Coordinates3D GetClosestNodeId(Vector3 worldPosition, int checkClosestCoordinatesRadius = 10)
         {
+            // TODO: LOS check from world pos to node, if failed skip
+
             var c = GetNodeId(worldPosition);
             if (_searchGraph.TryGetNode(c, out var closestNode))
             {

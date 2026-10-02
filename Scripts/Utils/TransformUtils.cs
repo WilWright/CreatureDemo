@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Utils
@@ -38,6 +39,28 @@ namespace Utils
 
             rotation = Quaternion.LookRotation(forward);
             return true;
+        }
+
+        public static T[] GetComponentsInDirectChildren<T>(this Transform transform) where T : Component
+        {
+            var components = new List<T>();
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                if (transform.GetChild(i).TryGetComponent(out T component))
+                {
+                    components.Add(component);
+                }
+            }
+
+            return components.ToArray();
+        }
+
+        public static void DestroyChildren(this Transform transform)
+        {
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                GameObject.Destroy(transform.GetChild(i).gameObject);
+            }
         }
     }
 }

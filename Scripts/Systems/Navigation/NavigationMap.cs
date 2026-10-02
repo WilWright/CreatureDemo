@@ -62,7 +62,13 @@ namespace Navigation
 
         public CancellationTokenSource RequestNavigationPath(Vector3 from, Vector3 to, Action<NavigationPath> onReady)
         {
-            return GetAvailableSearch().RequestNavigationPath(from, to,
+            var search = GetAvailableSearch();
+            if (search == null)
+            {
+                return null;
+            }
+
+            return search.RequestNavigationPath(from, to,
                 (path) =>
                 {
                     _results.Enqueue(new NavigationResult(onReady, path));
@@ -80,12 +86,23 @@ namespace Navigation
 
         NavigationPathSearch GetAvailableSearch()
         {
-            if (++_currentAvailableSearchIndex >= _availableSearches.Length)
+            for (int i = _currentAvailableSearchIndex; i < _availableSearches.Length; i++)
             {
-                _currentAvailableSearchIndex = 0;
+                if (++_currentAvailableSearchIndex >= _availableSearches.Length)
+                {
+                    _currentAvailableSearchIndex = 0;
+                }
+
+                var search = _availableSearches[i];
+                if (search.Initialized == false)
+                {
+                    continue;
+                }
+
+                return search;
             }
 
-            return _availableSearches[_currentAvailableSearchIndex];
+            return null;
         }
     }
 }

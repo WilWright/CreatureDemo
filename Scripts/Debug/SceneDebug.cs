@@ -269,14 +269,25 @@ namespace Debugging
         {
             if (_materials.TryGetValue(color, out var material) == false)
             {
-                material = new(color.a == 1 ? BaseMaterial : BaseTransparentMaterial)
-                {
-                    color = color
-                };
+                material = GetMaterial();
                 _materials.Add(color, material);
             }
 
+            if (material == null)
+            {
+                material = GetMaterial();
+                _materials[color] = material;
+            }
+
             return material;
+
+            Material GetMaterial()
+            {
+                return new(color.a == 1 ? BaseMaterial : BaseTransparentMaterial)
+                {
+                    color = color
+                };
+            }
         }
     }
 }

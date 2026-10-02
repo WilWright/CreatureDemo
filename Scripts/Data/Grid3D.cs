@@ -1,46 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
 
 using Utils;
 
 public class Grid3D<T>
 {
-    [Serializable]
-    public struct SerializedGrid
-    {
-        [Serializable]
-        public struct Element
-        {
-            [field: SerializeField] public Coordinates3D Coordinates { get; private set; }
-            [field: SerializeField] public T             Data        { get; private set; }
-
-            public Element(Coordinates3D c, T element)
-            {
-                Coordinates = c;
-                Data        = element;
-            }
-        }
-
-        [field: SerializeField] public Element[] Elements { get; private set; }
-
-        public SerializedGrid(Grid3D<T> g)
-        {
-            var elements = new List<Element>();
-            foreach (var c in g.Bounds.EnumerateFromZero())
-            {
-                var e = g[c];
-                if (e == null)
-                {
-                    continue;
-                }
-
-                elements.Add(new Element(c, e));
-            }
-            Elements = elements.Count == 0 ? null : elements.ToArray();
-        }
-    }
-
     public T this[Coordinates3D c]
     {
         get => _flatGrid[c.x + c.z * Size.x + c.y * Size.x * Size.z];
@@ -58,32 +21,6 @@ public class Grid3D<T>
         Size = new Coordinates3D(width, height, depth);
         Bounds = Size - 1;
         _flatGrid = new T[width * height * depth];
-    }
-
-    public Grid3D(SerializedGrid s)
-    {
-        if (s.Elements == null)
-        {
-            return;
-        }
-
-        foreach (var element in s.Elements)
-        {
-            Bounds = CoordinatesUtils.Max(Bounds, element.Coordinates);
-        }
-
-        Size = Bounds + 1;
-        _flatGrid = new T[Size.x * Size.y * Size.z];
-
-        foreach (var element in s.Elements)
-        {
-            this[element.Coordinates] = element.Data;
-        }
-    }
-
-    public SerializedGrid GetSerialized()
-    {
-        return new SerializedGrid(this);
     }
 
     public T RemoveAt(Coordinates3D c)
@@ -114,6 +51,14 @@ public class Grid3D<T>
         return c.x >= 0 && c.x <= Bounds.x
             && c.y >= 0 && c.y <= Bounds.y 
             && c.z >= 0 && c.z <= Bounds.z;
+    }
+
+    public void Clear()
+    {
+        foreach (var c in EnumerateBounds())
+        {
+            this[c] = default;
+        }
     }
 
     public Enumerator GetEnumerator() => new(_flatGrid);

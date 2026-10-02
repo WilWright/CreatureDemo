@@ -29,13 +29,13 @@ public class GameController : MonoBehaviour
         ChunkManager.LoadChunk(player.transform.position);
     }
 
-    private void Update()
+    void Update()
     {
         OnMainThreadUpdate.Invoke();
     }
 
 #if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
+    void OnDrawGizmosSelected()
     {
         if (_chunkConfig != null)
         {

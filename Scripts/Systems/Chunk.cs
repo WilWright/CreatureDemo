@@ -71,38 +71,81 @@ public class Chunk : MonoBehaviour
         }
     }
 
-    public void SetUnit(Unit unit)
+    public bool IsWithinBounds(Vector3 worldPosition, out Coordinates3D spatialCoordinates)
+    {
+        spatialCoordinates = UNREGISTERED_COORDINATES;
+
+        worldPosition.y = 0;
+        var c = CoordinatesUtils.FromVector3Floor((worldPosition - transform.position) / Config.CellSize);
+        if (_spatialGrid.IsWithinBounds(c))
+        {
+            spatialCoordinates = c;
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool AddUnit(Unit unit, out Coordinates3D spatialCoordinates)
     {
         InitNavigationMap(unit.UnitType);
 
-        var c = GetSpatialCoordinates(unit.transform.position);
-        unit.SpatialCoordinates = c;
-        AddUnit(c, unit);
+        if (IsWithinBounds(unit.transform.position, out spatialCoordinates) == false)
+        {
+            return false;
+        }
+
+        AddUnit(spatialCoordinates, unit);
+        return true;
     }
 
-    public void UpdateUnit(Unit unit)
+    public bool UpdateUnit(Unit unit, out Coordinates3D spatialCoordinates)
     {
-        RemoveUnit(unit);
-        SetUnit(unit);
+        if (IsWithinBounds(unit.transform.position, out spatialCoordinates) == false)
+        {
+            RemoveUnit(unit);
+            return false;
+        }
+
+        if (spatialCoordinates == unit.SpatialCoordinates)
+        {
+            return true;
+        }
+
+        if (RemoveUnit(unit) == false)
+        {
+            return false;
+        }
+
+        return AddUnit(unit, out spatialCoordinates);
     }
 
-    public void RemoveUnit(Unit unit)
+    public bool RemoveUnit(Unit unit)
     {
+        if (_spatialGrid.IsWithinBounds(unit.SpatialCoordinates) == false)
+        {
+            return false;
+        }
+
         RemoveUnit(unit.SpatialCoordinates, unit);
-        unit.SpatialCoordinates = UNREGISTERED_COORDINATES;
+        return true;
     }
 
-    public CancellationTokenSource RequestNavigationPath(NavigationUnit unit, Vector3 to, Action<NavigationPath> onReady)
+    public CancellationTokenSource RequestNavigationPath(Unit unit, Vector3 to, Action<NavigationPath> onReady)
     {
         var map = _navigationMaps[(int)unit.UnitType.Id];
         if (map == null)
         {
-            onReady(null);
-            SystemLog.Warn($"{unit.gameObject.name}({unit.UnitType}) navigation map not ready");
-            return null;
+            SystemLog.Warn($"{unit.UnitType.name} navigation map not ready");
         }
 
-        return map.RequestNavigationPath(unit.transform.position, to, onReady);
+        var request = map?.RequestNavigationPath(unit.transform.position, to, onReady);
+        if (request == null)
+        {
+            onReady(null);
+        }
+
+        return request;
     }
 
     void AddUnit(Coordinates3D c, Unit unit)
@@ -126,20 +169,6 @@ public class Chunk : MonoBehaviour
         }
 
         cell.Units.Remove(unit);
-    }
-
-    Coordinates3D GetSpatialCoordinates(Vector3 worldPosition)
-    {
-        worldPosition.y = 0;
-        var c = CoordinatesUtils.FromVector3Floor((worldPosition - transform.position) / Config.CellSize);
-        if (_spatialGrid.IsWithinBounds(c))
-        {
-            return c;
-        }
-
-        // TODO: Move to another chunk if applicable
-
-        return UNREGISTERED_COORDINATES;
     }
 
     async void InitNavigationMap(UnitType unitType)
@@ -177,7 +206,7 @@ public class Chunk : MonoBehaviour
             fileName += $"_{context}";
         }
 
-        return FileUtils.GetStreamingAssetsPath("Chunk Data", ChunkConfig.GetChunkLabel(ChunkId), $"{fileName}.json");
+        return FileUtils.GetStreamingAssetsPath("Chunk Data", ChunkConfig.GetChunkLabel(ChunkId), fileName);
     }
 }
  

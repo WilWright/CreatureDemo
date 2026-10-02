@@ -1,36 +1,81 @@
+using System;
+using System.Threading;
 using UnityEngine;
+
+using Navigation;
 
 public class Unit : MonoBehaviour
 {
     [field: SerializeField] public UnitType UnitType { get; private set; }
 
-    public Coordinates3D SpatialCoordinates { get; set; } = Chunk.UNREGISTERED_COORDINATES;
+    public Coordinates3D SpatialCoordinates { get; private set; } = Chunk.UNREGISTERED_COORDINATES;
 
     Chunk _currentChunk;
 
     void Start()
     {
         // TODO: Pool units and spawn from spawner or save data to init
-        var c = GameController.ChunkManager.ChunkConfig.GetChunkCoordinates(transform.position);
-        if (GameController.ChunkManager.TryGetChunk(c, out var chunk))
-        {
-            Init(chunk);
-        }
+        UpdateChunk();
+    }
+
+    void OnDestroy()
+    {
+        RemoveFromChunk();
     }
 
     void Update()
     {
-        _currentChunk.UpdateUnit(this);
+        UpdateChunk();
     }
 
-    public void Init(Chunk currentChunk)
+    public CancellationTokenSource RequestNavigationPath(Vector3 to, Action<NavigationPath> onReady)
     {
-        _currentChunk = currentChunk;
-        _currentChunk.SetUnit(this);
+        if (_currentChunk == null)
+        {
+            onReady(null);
+            return null;
+        }
+
+        return _currentChunk.RequestNavigationPath(this, to, onReady);
     }
 
-    private void OnDestroy()
+    public void RemoveFromChunk()
     {
-        _currentChunk.RemoveUnit(this);
+        if (_currentChunk != null)
+        {
+            _currentChunk.RemoveUnit(this);
+            _currentChunk = null;
+        }
+
+        SpatialCoordinates = Chunk.UNREGISTERED_COORDINATES;
+    }
+
+    void UpdateChunk()
+    {
+        Coordinates3D spatialCoordinates;
+
+        if (_currentChunk == null)
+        {
+            if (GameController.ChunkManager.TryGetChunk(transform.position, out var chunk) == false)
+            {
+                return;
+            }
+
+            _currentChunk = chunk;
+            _currentChunk.AddUnit(this, out spatialCoordinates);
+
+            SpatialCoordinates = spatialCoordinates;
+            return;
+        }
+
+        bool retry = _currentChunk.UpdateUnit(this, out spatialCoordinates) == false;
+
+        SpatialCoordinates = spatialCoordinates;
+
+        if (retry)
+        {
+            _currentChunk = null;
+            UpdateChunk();
+        }
     }
 }

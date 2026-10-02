@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 
+using Utils;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -74,6 +76,6 @@ public static class SystemLog
 
     static string ColorString(string s, string color)
     {
-        return _isColorEnabled ? $"<b><color=#{color}>{s}</color></b>" : s;
+        return _isColorEnabled ? s.Color(color) : s;
     }
 }

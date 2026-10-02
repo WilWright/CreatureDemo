@@ -7,56 +7,6 @@ using Utils;
 public class Graph<TId, TData>
 {
     [Serializable]
-    public struct SerializedGraph
-    {
-        [Serializable]
-        public struct Node
-        {
-            [Serializable]
-            public struct Edge
-            {
-                [field: SerializeField] public TId   Id   { get; private set; }
-                [field: SerializeField] public float Cost { get; private set; }
-
-                public Edge(TId id, float cost)
-                {
-                    Id   = id;
-                    Cost = cost;
-                }
-            }
-
-            [field: SerializeField] public TId    Id    { get; private set; }
-            [field: SerializeField] public TData  Data  { get; private set; }
-            [field: SerializeField] public Edge[] Edges { get; private set; }
-
-            public Node(Graph<TId, TData>.Node node)
-            {
-                Id   = node.Id;
-                Data = node.Data;
-
-                var edges = new List<Edge>();
-                foreach (var edge in node)
-                {
-                    edges.Add(new Edge(edge.Node.Id, edge.Cost));
-                }
-                Edges = edges.Count == 0 ? null : edges.ToArray();
-            }
-        }
-
-        [field: SerializeField] public Node[] Nodes { get; private set; }
-
-        public SerializedGraph(Graph<TId, TData> g)
-        {
-            var nodes = new List<Node>();
-            foreach (var node in g)
-            {
-                nodes.Add(new Node(node));
-            }
-            Nodes = nodes.Count == 0 ? null : nodes.ToArray();
-        }
-    }
-
-    [Serializable]
     public class Node
     {
         [Serializable]
@@ -75,6 +25,8 @@ public class Graph<TId, TData>
         public TId Id { get; private set; }
 
         public TData Data { get; private set; }
+
+        public int EdgeCount => _edges.Count;
 
         readonly List<Edge> _edges = new();
 
@@ -111,12 +63,18 @@ public class Graph<TId, TData>
             return edge;
         }
 
-        public void RemoveEdge(TId id)
+        public void RemoveEdge(TId id, bool removeReverseEdge = true)
         {
             for (int i = 0; i < _edges.Count; i++)
             {
-                if (_edges[i].Node.Id.Equals(id))
+                var edge = _edges[i];
+                if (edge.Node.Id.Equals(id))
                 {
+                    if (removeReverseEdge)
+                    {
+                        edge.Node.RemoveEdge(Id, false);
+                    }
+
                     _edges.RemoveAt(i);
                     return;
                 }
@@ -141,41 +99,11 @@ public class Graph<TId, TData>
         }
     }
 
+    public int NodeCount => _nodes.Count;
+
     readonly Dictionary<TId, Node> _nodes = new();
 
     public Graph() {}
-
-    public Graph(SerializedGraph s)
-    {
-        if (s.Nodes == null)
-        {
-            return;
-        }
-
-        foreach (var node in s.Nodes)
-        {
-            AddNewNodeOrGet(node.Id, node.Data);
-        }
-        foreach (var node in s.Nodes)
-        {
-            if (node.Edges == null)
-            {
-                continue;
-            }
-
-            TryGetNode(node.Id, out var n);
-            foreach (var edge in node.Edges)
-            {
-                TryGetNode(edge.Id, out var e);
-                n.AddNewEdgeOrGet(e, edge.Cost);
-            }
-        }
-    }
-
-    public SerializedGraph GetSerialized()
-    {
-        return new SerializedGraph(this);
-    }
 
     public bool TryGetNode(TId id, out Node node)
     {

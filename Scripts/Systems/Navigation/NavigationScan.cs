@@ -1,4 +1,4 @@
-using System;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -8,35 +8,24 @@ namespace Navigation
 {
     public class NavigationScan
     {
-        [Serializable]
-        public struct SerializedScan
+        readonly struct SerializedElement
         {
-            [field: SerializeField] public Grid3D<NavigationPoint.SerializedNavigationPoint>.SerializedGrid Grid { get; private set; }
-            [field: SerializeField] public Vector3 GridOrigin { get; private set; }
-            [field: SerializeField] public float   NodeSize   { get; private set; }
+            public readonly Coordinates3D Coordinates;
+            public readonly NavigationPoint Point;
 
-            public SerializedScan(NavigationScan n)
+            public SerializedElement(Coordinates3D coordinates, NavigationPoint point)
             {
-                var grid = n.Grid;
-                var serializedGrid = new Grid3D<NavigationPoint.SerializedNavigationPoint>(grid.Bounds);
-                foreach (var c in grid.Bounds.EnumerateFromZero())
-                {
-                    var point = grid[c];
-                    if (point != null)
-                    {
-                        serializedGrid[c] = new NavigationPoint.SerializedNavigationPoint(grid[c]);
-                    }
-                }
-
-                Grid       = serializedGrid.GetSerialized();
-                GridOrigin = n.GridOrigin;
-                NodeSize   = n.NodeSize;
+                Coordinates = coordinates;
+                Point       = point;
             }
         }
 
         public Grid3D<NavigationPoint> Grid       { get; private set; }
         public Vector3                 GridOrigin { get; private set; }
         public float                   NodeSize   { get; private set; }
+
+        const int CURRENT_SERIALIZATION_VERSION = 1;
+        const string SERIALIZED_FILE_EXTENSION = ".navscan";
 
         public NavigationScan(Grid3D<NavigationPoint> grid, Vector3 gridOrigin, float nodeSize)
         {
@@ -45,44 +34,64 @@ namespace Navigation
             NodeSize   = nodeSize;
         }
 
-        NavigationScan(SerializedScan s)
+        public void Write(BinaryWriter writer)
         {
-            var grid = new Grid3D<NavigationPoint.SerializedNavigationPoint>(s.Grid);
-            Grid = new Grid3D<NavigationPoint>(grid.Bounds);
-            foreach (var c in grid.Bounds.EnumerateFromZero())
-            {
-                var point = grid[c];
-                if (point != null)
-                {
-                    Grid[c] = new NavigationPoint(point);
-                }
-            }
+            writer.Write(CURRENT_SERIALIZATION_VERSION);
 
-            GridOrigin = s.GridOrigin;
-            NodeSize   = s.NodeSize;
+            writer.Write(GridOrigin);
+            writer.Write(NodeSize);
+
+            writer.Write(Grid.Bounds);
+            foreach (var c in Grid.EnumerateBounds())
+            {
+                var point = Grid[c];
+                if (point == null)
+                {
+                    continue;
+                }
+
+                writer.Write(c);
+                point .Write(writer);
+            }
         }
 
-        public SerializedScan GetSerialized()
+        public static NavigationScan Read(BinaryReader reader)
         {
-            return new SerializedScan(this);
+            int version = reader.ReadInt32();
+
+            var gridOrigin = reader.ReadVector3();
+            float nodeSize = reader.ReadSingle();
+
+            var bounds = reader.ReadCoordinates3D();
+            var grid = new Grid3D<NavigationPoint>(bounds);
+            while (reader.BaseStream.Position < reader.BaseStream.Length)
+            {
+                var c = reader.ReadCoordinates3D();
+                var point = NavigationPoint.Read(reader);
+                grid[c] = point;
+            }
+
+            return new NavigationScan(grid, gridOrigin, nodeSize);
+        }
+
+        public async Task<FileUtils.FileResult> Save(string path)
+        {
+            path += SERIALIZED_FILE_EXTENSION;
+            return await FileUtils.WriteBinary(path, Write);
         }
 
         public static async Task<NavigationScan> Load(string path)
         {
-            var result = await FileUtils.LoadJson<SerializedScan>(path);
+            path += SERIALIZED_FILE_EXTENSION;
+
+            var result = await FileUtils.ReadBinary(path, Read);
             if (result.IsSuccess == false)
             {
-                SystemLog.Error("Scan does not exist: " + path);
+                SystemLog.Error(result.FailMessage);
                 return null;
             }
 
-            var scan = await Task.Run(() => new NavigationScan(result.Data));
-            return scan;
-        }
-
-        public async Task Save(string path)
-        {
-            await FileUtils.SaveJson(path, GetSerialized());
+            return result.Data;
         }
     }
 }

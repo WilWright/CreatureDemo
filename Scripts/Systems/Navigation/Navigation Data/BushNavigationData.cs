@@ -13,7 +13,7 @@ namespace Navigation
         // Fudge capacity to account for rectangular areas fitting side by side
         const float CAPACITY_FUDGE = 0.15f;
 
-        private void Awake()
+        void Awake()
         {
             float area = Mathf.PI * Mathf.Pow(_capacityArea.radius * transform.lossyScale.x, 2);
             _capacity = area * CAPACITY_FUDGE;

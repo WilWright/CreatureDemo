@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 using Utils;
@@ -26,6 +27,8 @@ public class SerializableGameObject : MonoBehaviour
 
         static Dictionary<string, Context> _serializationContext;
 
+        const int CURRENT_SERIALIZATION_VERSION = 1;
+
         public SerializedId(GameObject obj)
         {
             Id     = null;
@@ -40,6 +43,12 @@ public class SerializableGameObject : MonoBehaviour
             IdType = component.GetType().ToString();
 
             Id = GetOrInitSerializableGameObject(component.gameObject).Id;
+        }
+
+        public SerializedId(string id, string idType)
+        {
+            Id     = id;
+            IdType = idType;
         }
 
         public static void InitContext(Transform fromTransform = null)
@@ -101,6 +110,24 @@ public class SerializableGameObject : MonoBehaviour
             }
 
             return null;
+        }
+
+        public readonly void Write(BinaryWriter writer)
+        {
+            writer.Write(CURRENT_SERIALIZATION_VERSION);
+
+            writer.Write(Id);
+            writer.Write(IdType);
+        }
+
+        public static SerializedId Read(BinaryReader reader)
+        {
+            int version = reader.ReadInt32();
+
+            string id     = reader.ReadString();
+            string idType = reader.ReadString();
+
+            return new SerializedId(id, idType);
         }
 
         readonly Context GetContext()

@@ -21,9 +21,13 @@ public struct MinMaxValue
 
         public readonly int GetClampedValue(int value) => Mathf.Clamp(value, min, max);
 
-        public readonly int Lerp(float percent) => Mathf.RoundToInt(Mathf.Lerp(min, max, percent));
+        public readonly int Lerp(float percent) => (int)Math.Round(Mathf.Lerp(min, max, percent), MidpointRounding.AwayFromZero);
 
+        public readonly int   InverseLerp(int   value) => (int)Math.Round(Mathf.InverseLerp(min, max, value), MidpointRounding.AwayFromZero);
         public readonly float InverseLerp(float value) => Mathf.InverseLerp(min, max, value);
+
+        public readonly bool IsWithinRange(int   value) => value >= min && value <= max;
+        public readonly bool IsWithinRange(float value) => value >= min && value <= max;
 
         public readonly override string ToString() => "(" + min + ", " + max + ")";
     }
@@ -47,6 +51,8 @@ public struct MinMaxValue
         public readonly float Lerp(float percent) => Mathf.Lerp(min, max, percent);
 
         public readonly float InverseLerp(float value) => Mathf.InverseLerp(min, max, value);
+
+        public readonly bool IsWithinRange(float value) => value >= min && value <= max;
 
         public readonly override string ToString() => "(" + min + ", " + max + ")";
     }

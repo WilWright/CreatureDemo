@@ -1,4 +1,5 @@
-using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -8,34 +9,15 @@ namespace Navigation
 {
     public class NavigationGraph
     {
-        [Serializable]
-        public struct SerializedGraph
+        readonly struct SerializedEdge
         {
-            [field: SerializeField] public Graph<Coordinates3D, NavigationPoint.SerializedNavigationPoint>.SerializedGraph Graph { get; private set; }
-            [field: SerializeField] public Vector3 GraphOrigin { get; private set; }
-            [field: SerializeField] public float   NodeSize    { get; private set; }
+            public readonly Coordinates3D Id;
+            public readonly float Cost;
 
-            public SerializedGraph(NavigationGraph n)
+            public SerializedEdge(Coordinates3D id, float cost)
             {
-                var graph = n.Graph;
-                var serializedGraph = new Graph<Coordinates3D, NavigationPoint.SerializedNavigationPoint>();
-                foreach (var node in graph)
-                {
-                    serializedGraph.AddNewNodeOrGet(node.Id, new NavigationPoint.SerializedNavigationPoint(node.Data));
-                }
-                foreach (var node in graph)
-                {
-                    serializedGraph.TryGetNode(node.Id, out var sNode);
-                    foreach (var edge in node)
-                    {
-                        serializedGraph.TryGetNode(edge.Node.Id, out var edgeNode);
-                        sNode.AddNewEdgeOrGet(edgeNode, edge.Cost);
-                    }
-                }
-
-                Graph       = serializedGraph.GetSerialized();
-                GraphOrigin = n.GraphOrigin;
-                NodeSize    = n.NodeSize;
+                Id   = id;
+                Cost = cost;
             }
         }
 
@@ -43,6 +25,9 @@ namespace Navigation
         public Vector3       GraphOrigin { get; private set; }
         public Coordinates3D GraphBounds { get; private set; }
         public float         NodeSize    { get; private set; }
+
+        const int CURRENT_SERIALIZATION_VERSION = 1;
+        const string SERIALIZED_FILE_EXTENSION = ".navgraph";
 
         public NavigationGraph(Graph<Coordinates3D, NavigationPoint> graph, Vector3 graphOrigin, float nodeSize)
         {
@@ -56,50 +41,94 @@ namespace Navigation
             }
         }
 
-        NavigationGraph(SerializedGraph s)
+        public void Write(BinaryWriter writer)
         {
-            var graph = new Graph<Coordinates3D, NavigationPoint.SerializedNavigationPoint>(s.Graph);
-            Graph = new Graph<Coordinates3D, NavigationPoint>();
-            foreach (var node in graph)
+            writer.Write(CURRENT_SERIALIZATION_VERSION);
+
+            writer.Write(Graph.NodeCount);
+            foreach (var node in Graph)
             {
-                Graph.AddNewNodeOrGet(node.Id, new NavigationPoint(node.Data));
-                GraphBounds = CoordinatesUtils.Max(GraphBounds, node.Id);
-            }
-            foreach (var sNode in graph)
-            {
-                Graph.TryGetNode(sNode.Id, out var node);
-                foreach (var edge in sNode)
+                writer.Write(node.Id);
+                node.Data.Write(writer);
+
+                writer.Write(node.EdgeCount);
+                foreach (var edge in node)
                 {
-                    Graph.TryGetNode(edge.Node.Id, out var edgeNode);
+                    writer.Write(edge.Node.Id);
+                    writer.Write(edge.Cost);
+                }
+            }
+
+            writer.Write(GraphOrigin);
+            writer.Write(NodeSize);
+        }
+
+        public static NavigationGraph Read(BinaryReader reader)
+        {
+            int version = reader.ReadInt32();
+
+            var graph = new Graph<Coordinates3D, NavigationPoint>();
+            var edges = new Dictionary<Coordinates3D, List<SerializedEdge>>();
+            int nodeCount = reader.ReadInt32();
+            for (int i = 0; i < nodeCount; i++)
+            {
+                var nodeId = reader.ReadCoordinates3D();
+                var nodeData = NavigationPoint.Read(reader);
+                graph.AddNewNodeOrGet(nodeId, nodeData);
+
+                int edgeCount = reader.ReadInt32();
+                if (edgeCount == 0)
+                {
+                    continue;
+                }
+
+                var edgeList = new List<SerializedEdge>();
+                for (int j = 0; j < edgeCount; j++)
+                {
+                    var edgeId   = reader.ReadCoordinates3D();
+                    int edgeCost = reader.ReadInt32();
+                    edgeList.Add(new SerializedEdge(edgeId, edgeCost));
+                }
+                edges.Add(nodeId, edgeList);
+            }
+
+            foreach (var kvp in edges)
+            {
+                var nodeId   = kvp.Key;
+                var edgeList = kvp.Value;
+
+                graph.TryGetNode(nodeId, out var node);
+                foreach (var edge in edgeList)
+                {
+                    graph.TryGetNode(edge.Id, out var edgeNode);
                     node.AddNewEdgeOrGet(edgeNode, edge.Cost);
                 }
             }
 
-            GraphOrigin = s.GraphOrigin;
-            NodeSize    = s.NodeSize;
+            var graphOrigin = reader.ReadVector3();
+            float nodeSize  = reader.ReadSingle();
+
+            return new NavigationGraph(graph, graphOrigin, nodeSize);
         }
 
-        public SerializedGraph GetSerialized()
+        public async Task<FileUtils.FileResult> Save(string path)
         {
-            return new SerializedGraph(this);
+            path += SERIALIZED_FILE_EXTENSION;
+            return await FileUtils.WriteBinary(path, Write);
         }
 
         public static async Task<NavigationGraph> Load(string path)
         {
-            var result = await FileUtils.LoadJson<SerializedGraph>(path);
+            path += SERIALIZED_FILE_EXTENSION;
+
+            var result = await FileUtils.ReadBinary(path, Read);
             if (result.IsSuccess == false)
             {
-                SystemLog.Error("Graph does not exist: " + path);
+                SystemLog.Error(result.FailMessage);
                 return null;
             }
 
-            var scan = await Task.Run(() => new NavigationGraph(result.Data));
-            return scan;
-        }
-
-        public async Task Save(string path)
-        {
-            await FileUtils.SaveJson(path, GetSerialized());
+            return result.Data;
         }
     }
 }

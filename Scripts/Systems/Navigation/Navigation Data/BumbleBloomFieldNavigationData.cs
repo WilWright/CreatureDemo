@@ -15,7 +15,7 @@ namespace Navigation
             return transform.position + new Vector3(randomPos.x, 0, randomPos.y);
         }
 
-        private void OnDrawGizmosSelected()
+        void OnDrawGizmosSelected()
         {
             Gizmos.DrawWireSphere(transform.position, _availableRestPositionRadius);
         }
