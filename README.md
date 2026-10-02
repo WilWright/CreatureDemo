@@ -22,7 +22,7 @@ The navigation scan is then loaded and processed further into a [Navigation Grap
 Here you can see some test terrain that contains different cases of navigation a unit may come across, especially if you don't want to comb through every inch of terrain and optimize it or smooth it out.
 ![](README%20Files/debug_terrain.png)
 
-Here it is after a scan, with blue nodes representing the walking points, purple nodes representing areas that a unit cannot safely rest but can traverse through to another safe area, and green node to represent ledges.
+Here it is after a scan, with blue nodes representing the walking points, purple nodes representing areas that a unit cannot safely rest but can traverse through to another safe area, and green nodes to represent ledges.
 ![](README%20Files/debug_terrain_nodes.png)
 
 And now with the nodes connected by edges for the pathfinder to use.
